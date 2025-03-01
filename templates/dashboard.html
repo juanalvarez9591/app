@@ -335,28 +335,35 @@
         }
 
         // Update the loadData function to call loadBalanceData
-        async function loadData() {
-            try {
-                // Load elements
-                const elementsResponse = await fetch(`/api/elements?month=${currentMonth}&year=${currentYear}`);
-                if (elementsResponse.ok) {
-                    const elements = await elementsResponse.json();
-                    renderElements(elements);
-                }
-                
-                // Load balance data for the specific month/year
-                await loadBalanceData();
-                
-                // Load graph data
-                const graphResponse = await fetch(`/api/balance/graph?months=6`);
-                if (graphResponse.ok) {
-                    const graphData = await graphResponse.json();
-                    displayCharts(graphData);
-                }
-            } catch (error) {
-                console.error('Error al cargar datos:', error);
-            }
+        // Modify the loadData function to make sure charts are properly updated
+async function loadData() {
+    try {
+        // Load elements
+        const elementsResponse = await fetch(`/api/elements?month=${currentMonth}&year=${currentYear}`);
+        if (elementsResponse.ok) {
+            const elements = await elementsResponse.json();
+            renderElements(elements);
         }
+        
+        // Load balance data for the specific month/year
+        await loadBalanceData();
+        
+        // Load graph data
+        const graphResponse = await fetch(`/api/balance/graph?months=6`);
+        if (graphResponse.ok) {
+            const graphData = await graphResponse.json();
+            displayCharts(graphData);
+            
+            // Update breakdown chart again after balance data is loaded
+            if (breakdownChart) {
+                breakdownChart.destroy();
+            }
+            createBreakdownChart(document.getElementById('breakdown-chart').getContext('2d'), graphData);
+        }
+    } catch (error) {
+        console.error('Error al cargar datos:', error);
+    }
+}
 
         function renderElements(elements) {
             const incomeList = document.getElementById('income-list');
@@ -746,54 +753,67 @@
             createFinancialChart(ctx, data);
         }
     
-        function createBreakdownChart(ctx, data) {
-            // Obtener datos del mes actual (último elemento en los arrays)
-            const currentMonthIncome = data.datasets.income[data.datasets.income.length - 1];
-            const currentMonthExpenses = data.datasets.expenses[data.datasets.expenses.length - 1];
-            const currentMonthBalance = currentMonthIncome - currentMonthExpenses;
-            
-            // Actualizar visualización de texto
-            document.getElementById('pie-income').textContent = formatCurrency(currentMonthIncome);
-            document.getElementById('pie-expenses').textContent = formatCurrency(currentMonthExpenses);
-            document.getElementById('pie-balance').textContent = formatCurrency(currentMonthBalance);
-            
-            breakdownChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Ingresos', 'Gastos'],
-                    datasets: [{
-                        data: [currentMonthIncome, currentMonthExpenses],
-                        backgroundColor: [
-                           'rgb(34, 197, 94)',
-                           'rgb(239, 68, 68)'
-                       ],
-                       borderColor: 'white',
-                       borderWidth: 2,
-                       hoverOffset: 4
-                   }]
+        // Replace the createBreakdownChart function with this updated version:
+        function createBreakdownChart(breakdownCtx, data) {
+    // Parse the monetary values correctly for Argentine format
+    const parseArgentineCurrency = (text) => {
+        // Remove the currency symbol and any spaces
+        let value = text.replace(/[$\s]/g, '');
+        
+        // Replace dots (thousand separators) with nothing
+        value = value.replace(/\./g, '');
+        
+        // Replace commas (decimal separators) with dots for JavaScript parsing
+        value = value.replace(/,/g, '.');
+        
+        return parseFloat(value);
+    };
+    
+    // Get the monthly data elements by their IDs and parse correctly
+    const currentMonthIncome = parseArgentineCurrency(document.getElementById('monthly-income').textContent);
+    const currentMonthExpenses = parseArgentineCurrency(document.getElementById('monthly-expenses').textContent);
+    const currentMonthBalance = currentMonthIncome - currentMonthExpenses;
+    
+    // Update visualization text (no need to format again, just use the existing values)
+    document.getElementById('pie-income').textContent = document.getElementById('monthly-income').textContent;
+    document.getElementById('pie-expenses').textContent = document.getElementById('monthly-expenses').textContent;
+    document.getElementById('pie-balance').textContent = document.getElementById('monthly-balance').textContent;
+    
+    breakdownChart = new Chart(breakdownCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Ingresos', 'Gastos'],
+            datasets: [{
+                data: [currentMonthIncome, currentMonthExpenses],
+                backgroundColor: [
+                   'rgb(34, 197, 94)',
+                   'rgb(239, 68, 68)'
+               ],
+               borderColor: 'white',
+               borderWidth: 2,
+               hoverOffset: 4
+           }]
+       },
+       options: {
+           responsive: true,
+           maintainAspectRatio: false,
+           plugins: {
+               legend: {
+                   position: 'bottom',
                },
-               options: {
-                   responsive: true,
-                   maintainAspectRatio: false,
-                   plugins: {
-                       legend: {
-                           position: 'bottom',
-                       },
-                       tooltip: {
-                           callbacks: {
-                               label: function(context) {
-                                   const label = context.label || '';
-                                   const value = context.formattedValue;
-                                   return `${label}: $${parseFloat(value).toFixed(2)}`;
-                               }
-                           }
+               tooltip: {
+                   callbacks: {
+                       label: function(context) {
+                           const label = context.label || '';
+                           return `${label}: ${formatCurrency(context.raw)}`;
                        }
-                   },
-                   cutout: '70%'
+                   }
                }
-           });
+           },
+           cutout: '70%'
        }
-
+    });
+}
        // Add this to your page's JavaScript
        async function loadUserData() {
     try {
