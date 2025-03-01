@@ -573,20 +573,6 @@ def get_balance():
     monthly_expense = result[1] or 0
     monthly_balance = monthly_income - monthly_expense
     
-    # Get cumulative balance up to this month
-    c.execute("""
-    SELECT 
-        SUM(CASE WHEN type = 'ingreso' AND state = 'paid' THEN amount ELSE 0 END) as income,
-        SUM(CASE WHEN type = 'egreso' AND state = 'paid' THEN amount ELSE 0 END) as expense
-    FROM financing_elements 
-    WHERE (year < ? OR (year = ? AND month <= ?))
-    """, (year, year, month))
-    
-    result = c.fetchone()
-    cumulative_income = result[0] or 0
-    cumulative_expense = result[1] or 0
-    cumulative_balance = cumulative_income - cumulative_expense
-    
     conn.close()
     
     return jsonify({
@@ -594,12 +580,30 @@ def get_balance():
             'income': monthly_income,
             'expense': monthly_expense,
             'balance': monthly_balance
-        },
-        'cumulative': {
-            'income': cumulative_income,
-            'expense': cumulative_expense,
-            'balance': cumulative_balance
         }
+    })
+    
+@app.route('/api/balance/cumulative', methods=['GET'])
+@login_required
+def get_cumulative_balance():
+    conn = sqlite3.connect('roommates.db')
+    c = conn.cursor()
+    
+    # Calculate the cumulative balance from all records
+    c.execute("""
+    SELECT 
+        SUM(CASE WHEN type = 'ingreso' AND state = 'paid' THEN amount ELSE 0 END) -
+        SUM(CASE WHEN type = 'egreso' AND state = 'paid' THEN amount ELSE 0 END) as cumulative_balance
+    FROM financing_elements
+    """)
+    
+    result = c.fetchone()
+    cumulative_balance = result[0] or 0
+    
+    conn.close()
+    
+    return jsonify({
+        'cumulative_balance': cumulative_balance
     })
 
 # Then modify your app.py file near the bottom like this:

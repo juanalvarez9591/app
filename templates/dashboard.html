@@ -336,7 +336,7 @@
 
         // Update the loadData function to call loadBalanceData
         // Modify the loadData function to make sure charts are properly updated
-async function loadData() {
+        async function loadData() {
     try {
         // Load elements
         const elementsResponse = await fetch(`/api/elements?month=${currentMonth}&year=${currentYear}`);
@@ -347,6 +347,9 @@ async function loadData() {
         
         // Load balance data for the specific month/year
         await loadBalanceData();
+        
+        // Load cumulative balance data directly from the server
+        await loadCumulativeBalance();
         
         // Load graph data
         const graphResponse = await fetch(`/api/balance/graph?months=6`);
@@ -468,28 +471,23 @@ async function loadData() {
         }
         
         function updateBalanceDisplay(balanceData) {
-            document.getElementById('monthly-income').textContent = formatCurrency(balanceData.monthly.income);
-            document.getElementById('monthly-expenses').textContent = formatCurrency(balanceData.monthly.expense);
-            document.getElementById('monthly-balance').textContent = formatCurrency(balanceData.monthly.balance);
-            document.getElementById('cumulative-balance').textContent = formatCurrency(balanceData.cumulative.balance);
-            
-            // Actualizar color del balance según su valor
-            const monthlyBalanceEl = document.getElementById('monthly-balance');
-            if (balanceData.monthly.balance < 0) {
-                monthlyBalanceEl.classList.remove('text-blue-600');
-                monthlyBalanceEl.classList.add('text-red-600');
-            } else {
-                monthlyBalanceEl.classList.remove('text-red-600');
-                monthlyBalanceEl.classList.add('text-blue-600');
-            }
-            
-            const cumulativeBalanceEl = document.getElementById('cumulative-balance');
-            if (balanceData.cumulative.balance < 0) {
-                cumulativeBalanceEl.classList.add('text-red-600');
-            } else {
-                cumulativeBalanceEl.classList.add('text-green-600');
-            }
-        }
+    document.getElementById('monthly-income').textContent = formatCurrency(balanceData.monthly.income);
+    document.getElementById('monthly-expenses').textContent = formatCurrency(balanceData.monthly.expense);
+    document.getElementById('monthly-balance').textContent = formatCurrency(balanceData.monthly.balance);
+    
+    // Actualizar color del balance según su valor
+    const monthlyBalanceEl = document.getElementById('monthly-balance');
+    if (balanceData.monthly.balance < 0) {
+        monthlyBalanceEl.classList.remove('text-blue-600');
+        monthlyBalanceEl.classList.add('text-red-600');
+    } else {
+        monthlyBalanceEl.classList.remove('text-red-600');
+        monthlyBalanceEl.classList.add('text-blue-600');
+    }
+    
+    // Note: We no longer update cumulative balance here
+    // as it's handled by the loadCumulativeBalance function
+}
         
         function openModal(type, defaultValues = {}) {
             const modal = document.getElementById('element-modal');
@@ -863,6 +861,62 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
         console.error('Logout error:', error);
     }
 });
+
+// Add this function to fetch the cumulative balance
+async function loadCumulativeBalance() {
+    try {
+        const response = await fetch('/api/balance/cumulative');
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('cumulative-balance').textContent = formatCurrency(data.cumulative_balance);
+            
+            // Update color based on value
+            const cumulativeBalanceEl = document.getElementById('cumulative-balance');
+            cumulativeBalanceEl.className = 'text-2xl font-bold'; // Reset classes
+            
+            if (data.cumulative_balance < 0) {
+                cumulativeBalanceEl.classList.add('text-red-600');
+            } else {
+                cumulativeBalanceEl.classList.add('text-green-600');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading cumulative balance:', error);
+    }
+}
+
+// Modify the loadData function to call loadCumulativeBalance
+async function loadData() {
+    try {
+        // Load elements
+        const elementsResponse = await fetch(`/api/elements?month=${currentMonth}&year=${currentYear}`);
+        if (elementsResponse.ok) {
+            const elements = await elementsResponse.json();
+            renderElements(elements);
+        }
+        
+        // Load balance data for the specific month/year
+        await loadBalanceData();
+        
+        // Load cumulative balance data directly from the server
+        await loadCumulativeBalance();
+        
+        // Load graph data
+        const graphResponse = await fetch(`/api/balance/graph?months=6`);
+        if (graphResponse.ok) {
+            const graphData = await graphResponse.json();
+            displayCharts(graphData);
+            
+            // Update breakdown chart again after balance data is loaded
+            if (breakdownChart) {
+                breakdownChart.destroy();
+            }
+            createBreakdownChart(document.getElementById('breakdown-chart').getContext('2d'), graphData);
+        }
+    } catch (error) {
+        console.error('Error al cargar datos:', error);
+    }
+}
     </script>
 </body>
 </html>
