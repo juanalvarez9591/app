@@ -1,0 +1,276 @@
+<!-- templates/profile.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seguimiento de Gastos Compartidos - Perfil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-indigo-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">Seguimiento de Gastos Compartidos</h1>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-3">
+                    <a href="/profile" class="flex items-center gap-2 hover:text-indigo-200">
+                        <div class="w-8 h-8 rounded-full overflow-hidden bg-indigo-300 border-2 border-white">
+                            <img id="nav-profile-pic" src="{{ url_for('static', filename='default-profile.jpg') }}" 
+                                alt="Profile" class="w-full h-full object-cover">
+                        </div>
+                        <span id="username-display">{{ session.username }}</span>
+                    </a>
+                    <a href="/" class="px-3 py-1 bg-indigo-500 hover:bg-indigo-400 rounded text-sm">
+                        Dashboard
+                    </a>
+                    <button id="logout-btn" class="px-3 py-1 bg-indigo-500 hover:bg-indigo-400 rounded text-sm">
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto p-4">
+        <!-- Status Messages -->
+        <div id="error-message" class="hidden bg-red-100 text-red-700 p-3 rounded mb-4"></div>
+        <div id="success-message" class="hidden bg-green-100 text-green-700 p-3 rounded mb-4"></div>
+        
+        <!-- Profile Picture Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-6">Foto de Perfil</h2>
+            
+            <div class="flex flex-col items-center">
+                <div class="mb-4 w-32 h-32 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center border-4 border-indigo-100">
+                    <img id="profile-image-large" class="w-full h-full object-cover" 
+                         src="{{ url_for('static', filename='default-profile.jpg') }}" 
+                         alt="Foto de perfil">
+                </div>
+                <label for="profile-upload" class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded text-sm mt-2">
+                    Cambiar foto de perfil
+                </label>
+                <input type="file" id="profile-upload" class="hidden" accept="image/*">
+                <p class="text-gray-500 text-sm mt-2">La imagen se mostrará en el dashboard y en tu perfil</p>
+            </div>
+        </div>
+        
+        <!-- Password Change Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-6">Cambiar Contraseña</h2>
+            
+            <form id="password-form" class="max-w-lg mx-auto">
+                <div class="mb-4">
+                    <label for="current-password" class="block text-sm font-medium text-gray-700 mb-1">Contraseña actual</label>
+                    <input type="password" id="current-password" name="currentPassword"
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="new-password" class="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
+                    <input type="password" id="new-password" name="newPassword"
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <p class="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-1">Confirmar nueva contraseña</label>
+                    <input type="password" id="confirm-password" name="confirmPassword"
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <button type="submit" 
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Actualizar contraseña
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+    
+    <script>
+        // Logout functionality
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    window.location.href = data.redirect || '/login';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        });
+
+        // Profile picture upload
+        document.getElementById('profile-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    // Show image preview
+                    document.getElementById('profile-image-large').src = event.target.result;
+                    document.getElementById('nav-profile-pic').src = event.target.result;
+                    
+                    // Upload the image to the server
+                    uploadProfileImage(file);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function uploadProfileImage(file) {
+            const formData = new FormData();
+            formData.append('profile_image', file);
+            
+            try {
+                const response = await fetch('/api/profile/image', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Add timestamp to prevent caching
+                    const timestamp = new Date().getTime();
+                    const imageUrl = `${data.profileImage}?t=${timestamp}`;
+                    
+                    // Update both image elements with cache-busting URL
+                    document.getElementById('profile-image-large').src = imageUrl;
+                    document.getElementById('nav-profile-pic').src = imageUrl;
+                    
+                    showSuccessMessage('Imagen de perfil actualizada con éxito');
+                } else {
+                    showErrorMessage(data.error || 'Error al actualizar la imagen de perfil');
+                }
+            } catch (error) {
+                showErrorMessage('Ocurrió un error al subir la imagen. Por favor intentá de nuevo.');
+            }
+        }
+
+        // Password update form
+        document.getElementById('password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            // Validate passwords
+            if (!currentPassword) {
+                return showErrorMessage('Debes ingresar tu contraseña actual');
+            }
+            
+            if (!newPassword) {
+                return showErrorMessage('Debes ingresar una nueva contraseña');
+            }
+            
+            if (newPassword !== confirmPassword) {
+                return showErrorMessage('Las nuevas contraseñas no coinciden');
+            }
+            
+            if (newPassword.length < 6) {
+                return showErrorMessage('La nueva contraseña debe tener al menos 6 caracteres');
+            }
+            
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        currentPassword,
+                        newPassword,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccessMessage('Contraseña actualizada con éxito');
+                    
+                    // Clear password fields
+                    document.getElementById('current-password').value = '';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+                } else {
+                    showErrorMessage(data.error || 'Error al actualizar la contraseña');
+                }
+            } catch (error) {
+                showErrorMessage('Ocurrió un error. Por favor intentá de nuevo.');
+            }
+        });
+
+        function showErrorMessage(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            document.getElementById('success-message').classList.add('hidden');
+            
+            // Scroll to the top of the page to show the error
+            window.scrollTo(0, 0);
+            
+            // Hide the message after 5 seconds
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+        
+        function showSuccessMessage(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.classList.remove('hidden');
+            document.getElementById('error-message').classList.add('hidden');
+            
+            // Scroll to the top of the page to show the message
+            window.scrollTo(0, 0);
+            
+            // Hide the message after 5 seconds
+            setTimeout(() => {
+                successDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Load profile data when the page loads
+        async function loadProfileData() {
+            try {
+                const response = await fetch('/api/profile');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Update username display
+                    document.getElementById('username-display').textContent = data.displayName || '';
+                    
+                    // Update profile images if exists with cache-busting
+                    if (data.profileImage) {
+                        const timestamp = new Date().getTime();
+                        const imageUrl = `${data.profileImage}?t=${timestamp}`;
+                        
+                        // Update both profile images with the same image URL
+                        document.getElementById('profile-image-large').src = imageUrl;
+                        document.getElementById('nav-profile-pic').src = imageUrl;
+                        
+                        console.log('Profile image loaded:', imageUrl);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading profile data:', error);
+            }
+        }
+        
+        // Load profile data when the page loads
+        window.addEventListener('DOMContentLoaded', loadProfileData);
+    </script>
+</body>
+</html>

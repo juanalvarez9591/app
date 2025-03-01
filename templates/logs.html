@@ -1,0 +1,113 @@
+<!-- templates/logs.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Logs - Roommate Expense Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-indigo-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">Roommate Expense Tracker</h1>
+            <div class="flex items-center space-x-4">
+                <a href="/" class="hover:underline">Dashboard</a>
+                <button id="logout-btn" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-400 rounded">Logout</button>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto p-4">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold mb-4">Activity Logs</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 text-left">
+                            <th class="py-3 px-4 font-medium">Time</th>
+                            <th class="py-3 px-4 font-medium">User</th>
+                            <th class="py-3 px-4 font-medium">Action</th>
+                            <th class="py-3 px-4 font-medium">Entity</th>
+                            <th class="py-3 px-4 font-medium">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-list"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load logs
+            await loadLogs();
+            
+            // Logout button
+            document.getElementById('logout-btn').addEventListener('click', async () => {
+                const response = await fetch('/logout', { method: 'POST' });
+                if (response.ok) {
+                    window.location.href = '/';
+                }
+            });
+        });
+        
+        async function loadLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                if (response.ok) {
+                    const logs = await response.json();
+                    renderLogs(logs);
+                }
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            }
+        }
+        
+        function renderLogs(logs) {
+            const logsList = document.getElementById('logs-list');
+            logsList.innerHTML = '';
+            
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                // Format the timestamp
+                const date = new Date(log.created_at);
+                const formattedDate = date.toLocaleString();
+                
+                // Action color based on type
+                let actionColor = 'text-gray-800';
+                if (log.action_type === 'create') actionColor = 'text-green-600';
+                if (log.action_type === 'update') actionColor = 'text-blue-600';
+                if (log.action_type === 'delete') actionColor = 'text-red-600';
+                
+                // Parse details JSON
+                let details = '';
+                try {
+                    if (log.details) {
+                        const parsedDetails = JSON.parse(log.details);
+                        details = Object.keys(parsedDetails)
+                            .filter(key => ['title', 'amount', 'type', 'state'].includes(key))
+                            .map(key => `${key}: ${parsedDetails[key]}`)
+                            .join(', ');
+                    }
+                } catch (e) {
+                    details = log.details || '';
+                }
+                
+                row.innerHTML = `
+                    <td class="py-3 px-4">${formattedDate}</td>
+                    <td class="py-3 px-4">${log.username}</td>
+                    <td class="py-3 px-4 ${actionColor} font-medium">${log.action_type}</td>
+                    <td class="py-3 px-4">${log.entity_type}</td>
+                    <td class="py-3 px-4 text-sm">${details}</td>
+                `;
+                
+                logsList.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>

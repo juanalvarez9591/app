@@ -1,0 +1,4 @@
+{
+    "default_egresos": ["Alquiler", "UTE", "Antel", "Impuestos", "Gastos comunes"],
+    "default_ingresos": ["Alquiler Cochera", "Aporte Alan", "Aporte Juan", "Aporte Michael"]
+  }
