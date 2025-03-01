@@ -1,0 +1,922 @@
+<!-- templates/dashboard.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gastos comunes</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-indigo-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold">Seguimiento de Gastos Compartidos</h1>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-3">
+                    <a href="/profile" class="flex items-center gap-2 hover:text-indigo-200">
+                        <div class="w-8 h-8 rounded-full overflow-hidden bg-indigo-300 border-2 border-white">
+                            <img id="nav-profile-pic" src="{{ url_for('static', filename='default-profile.jpg') }}" 
+     alt="Profile" class="w-full h-full object-cover">
+                        </div>
+                        <span id="username-display">{{ session.username }}</span>
+                    </a>
+                    <a href="/profile" class="px-3 py-1 bg-indigo-500 hover:bg-indigo-400 rounded text-sm">
+                        Mi Perfil
+                    </a>
+                    <button id="logout-btn" class="px-3 py-1 bg-indigo-500 hover:bg-indigo-400 rounded text-sm">
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto p-4">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Resumen Mensual</h2>
+                <div class="flex space-x-2">
+                    <select id="month-select" class="border border-gray-300 rounded px-3 py-1">
+                        <option value="January">Enero</option>
+                        <option value="February">Febrero</option>
+                        <option value="March">Marzo</option>
+                        <option value="April">Abril</option>
+                        <option value="May">Mayo</option>
+                        <option value="June">Junio</option>
+                        <option value="July">Julio</option>
+                        <option value="August">Agosto</option>
+                        <option value="September">Septiembre</option>
+                        <option value="October">Octubre</option>
+                        <option value="November">Noviembre</option>
+                        <option value="December">Diciembre</option>
+                    </select>
+                    <select id="year-select" class="border border-gray-300 rounded px-3 py-1">
+                        <!-- Se poblará dinámicamente -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dashboard.html - Agregar después de la tarjeta de resumen mensual -->
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-green-100 p-4 rounded">
+                    <h3 class="text-sm font-semibold text-green-800 mb-1">Ingresos Mensuales</h3>
+                    <p id="monthly-income" class="text-2xl font-bold text-green-600">$0.00</p>
+                </div>
+                <div class="bg-red-100 p-4 rounded">
+                    <h3 class="text-sm font-semibold text-red-800 mb-1">Gastos Mensuales</h3>
+                    <p id="monthly-expenses" class="text-2xl font-bold text-red-600">$0.00</p>
+                </div>
+                <div class="bg-blue-100 p-4 rounded">
+                    <h3 class="text-sm font-semibold text-blue-800 mb-1">Balance Mensual</h3>
+                    <p id="monthly-balance" class="text-2xl font-bold text-blue-600">$0.00</p>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-sm font-semibold text-gray-700 mb-1">Balance Acumulado</h3>
+                <p id="cumulative-balance" class="text-2xl font-bold">$0.00</p>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Resumen Financiero</h2>
+                <div>
+                    <select id="chart-type" class="border border-gray-300 rounded px-3 py-1">
+                        <option value="line">Gráfico de Líneas</option>
+                        <option value="bar">Gráfico de Barras</option>
+                        <option value="combined">Vista Combinada</option>
+                    </select>
+                </div>
+            </div>
+            <div class="h-80 w-full" id="chart-container">
+                <canvas id="financial-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">Desglose del Mes Actual</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="h-64">
+                    <canvas id="breakdown-chart"></canvas>
+                </div>
+                <div class="flex flex-col justify-center">
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                            <span>Ingresos: <span id="pie-income" class="font-bold"></span></span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+                            <span>Gastos: <span id="pie-expenses" class="font-bold"></span></span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                            <span>Balance: <span id="pie-balance" class="font-bold"></span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Sección de Ingresos -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Ingresos</h2>
+                    <button id="add-income-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-400">
+                        Agregar Ingreso
+                    </button>
+                </div>
+                <div id="income-list" class="space-y-3">
+                    <!-- Los elementos de ingreso se poblarán aquí -->
+                </div>
+            </div>
+            
+            <!-- Sección de Gastos -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Gastos</h2>
+                    <button id="add-expense-btn" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-400">
+                        Agregar Gasto
+                    </button>
+                </div>
+                <div id="expense-list" class="space-y-3">
+                    <!-- Los elementos de gasto se poblarán aquí -->
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Modal de Agregar/Editar -->
+    <div id="element-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 id="modal-title" class="text-xl font-bold mb-4">Agregar Ingreso</h2>
+            
+            <form id="element-form" class="space-y-4">
+                <input type="hidden" id="element-id">
+                <input type="hidden" id="element-type">
+                
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700">Título</label>
+                    <select id="title" name="title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <!-- Se poblará dinámicamente -->
+                    </select>
+                </div>
+                
+                <div id="custom-title-container" class="hidden">
+                    <label for="custom-title" class="block text-sm font-medium text-gray-700">Título Personalizado</label>
+                    <input type="text" id="custom-title" name="custom-title"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-700">Monto</label>
+                    <input type="number" id="amount" name="amount" step="0.01" required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700">Descripción</label>
+                    <textarea id="description" name="description" rows="3"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                </div>
+                
+                <div>
+                    <label for="state" class="block text-sm font-medium text-gray-700">Estado</label>
+                    <select id="state" name="state" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="pending">Pendiente</option>
+                        <option value="paid">Pagado</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-btn" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Funciones de utilidad
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
+        }
+        
+        // Mapeo de meses entre español e inglés
+        const monthTranslations = {
+            'enero': 'January',
+            'febrero': 'February',
+            'marzo': 'March',
+            'abril': 'April',
+            'mayo': 'May',
+            'junio': 'June',
+            'julio': 'July',
+            'agosto': 'August',
+            'septiembre': 'September',
+            'octubre': 'October',
+            'noviembre': 'November',
+            'diciembre': 'December'
+        };
+        
+        const reverseMonthTranslations = {
+            'January': 'enero',
+            'February': 'febrero',
+            'March': 'marzo',
+            'April': 'abril',
+            'May': 'mayo',
+            'June': 'junio',
+            'July': 'julio',
+            'August': 'agosto',
+            'September': 'septiembre',
+            'October': 'octubre',
+            'November': 'noviembre',
+            'December': 'diciembre'
+        };
+        
+        // Variables globales
+        let currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
+        let currentYear = new Date().getFullYear();
+        let config = { default_ingresos: [], default_egresos: [] };
+        
+        // Inicializar la página
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Configurar opciones de selección de año
+            const yearSelect = document.getElementById('year-select');
+            const currentYearValue = new Date().getFullYear();
+            for (let year = currentYearValue - 2; year <= currentYearValue + 2; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            }
+            yearSelect.value = currentYear;
+            
+            // Configurar selección de mes
+            const monthSelect = document.getElementById('month-select');
+            monthSelect.value = currentMonth;
+            
+            // Mostrar nombre de usuario
+            const response = await fetch('/api/config');
+            if (response.ok) {
+                config = await response.json();
+            }
+            
+            // Configurar event listeners
+            setupEventListeners();
+            
+            // Cargar datos iniciales
+            await loadData();
+        });
+        
+        function setupEventListeners() {
+            // Cambio de mes y año
+            document.getElementById('month-select').addEventListener('change', (e) => {
+                currentMonth = e.target.value;
+                loadData(); // This will call loadBalanceData()
+            });
+            
+            document.getElementById('year-select').addEventListener('change', (e) => {
+                currentYear = parseInt(e.target.value);
+                loadData(); // This will call loadBalanceData()
+            });
+                    
+            // Botones de agregar
+            document.getElementById('add-income-btn').addEventListener('click', () => openModal('ingreso'));
+            document.getElementById('add-expense-btn').addEventListener('click', () => openModal('egreso'));
+            
+            // Formulario modal
+            document.getElementById('cancel-btn').addEventListener('click', closeModal);
+            document.getElementById('element-form').addEventListener('submit', saveElement);
+            
+            // Cambio en selección de título
+            document.getElementById('title').addEventListener('change', (e) => {
+                const customTitleContainer = document.getElementById('custom-title-container');
+                if (e.target.value === 'custom') {
+                    customTitleContainer.classList.remove('hidden');
+                } else {
+                    customTitleContainer.classList.add('hidden');
+                }
+            });
+            
+            // Cerrar sesión
+            document.getElementById('logout-btn').addEventListener('click', async () => {
+                const response = await fetch('/logout', { method: 'POST' });
+                if (response.ok) {
+                    window.location.href = '/';
+                }
+            });
+        }
+        
+        // Add this function to properly get monthly balance data
+        async function loadBalanceData() {
+            try {
+                // Get the selected month and year
+                const month = document.getElementById('month-select').value;
+                const year = document.getElementById('year-select').value;
+                
+                // Load balance data specifically for the selected month and year
+                const balanceResponse = await fetch(`/api/balance?month=${month}&year=${year}`);
+                if (balanceResponse.ok) {
+                    const balanceData = await balanceResponse.json();
+                    updateBalanceDisplay(balanceData);
+                }
+            } catch (error) {
+                console.error('Error loading balance data:', error);
+            }
+        }
+
+        // Update the loadData function to call loadBalanceData
+        // Modify the loadData function to make sure charts are properly updated
+        async function loadData() {
+    try {
+        // Load elements
+        const elementsResponse = await fetch(`/api/elements?month=${currentMonth}&year=${currentYear}`);
+        if (elementsResponse.ok) {
+            const elements = await elementsResponse.json();
+            renderElements(elements);
+        }
+        
+        // Load balance data for the specific month/year
+        await loadBalanceData();
+        
+        // Load cumulative balance data directly from the server
+        await loadCumulativeBalance();
+        
+        // Load graph data
+        const graphResponse = await fetch(`/api/balance/graph?months=6`);
+        if (graphResponse.ok) {
+            const graphData = await graphResponse.json();
+            displayCharts(graphData);
+            
+            // Update breakdown chart again after balance data is loaded
+            if (breakdownChart) {
+                breakdownChart.destroy();
+            }
+            createBreakdownChart(document.getElementById('breakdown-chart').getContext('2d'), graphData);
+        }
+    } catch (error) {
+        console.error('Error al cargar datos:', error);
+    }
+}
+
+        function renderElements(elements) {
+            const incomeList = document.getElementById('income-list');
+            const expenseList = document.getElementById('expense-list');
+            
+            // Limpiar listas
+            incomeList.innerHTML = '';
+            expenseList.innerHTML = '';
+            
+            // Mostrar primero los elementos predeterminados
+            const displayedTitles = new Set();
+            
+            // Agregar elementos de ingreso predeterminados
+            config.default_ingresos.forEach(title => {
+                const existingElement = elements.find(e => e.type === 'ingreso' && e.title === title);
+                
+                if (existingElement) {
+                    incomeList.appendChild(createElementItem(existingElement));
+                    displayedTitles.add(existingElement.id);
+                } else {
+                    incomeList.appendChild(createDefaultElementItem('ingreso', title));
+                }
+            });
+            
+            // Agregar elementos de gasto predeterminados
+            config.default_egresos.forEach(title => {
+                const existingElement = elements.find(e => e.type === 'egreso' && e.title === title);
+                
+                if (existingElement) {
+                    expenseList.appendChild(createElementItem(existingElement));
+                    displayedTitles.add(existingElement.id);
+                } else {
+                    expenseList.appendChild(createDefaultElementItem('egreso', title));
+                }
+            });
+            
+            // Agregar elementos restantes
+            elements.forEach(element => {
+                if (!displayedTitles.has(element.id)) {
+                    const list = element.type === 'ingreso' ? incomeList : expenseList;
+                    list.appendChild(createElementItem(element));
+                }
+            });
+        }
+        
+        function createElementItem(element) {
+            const item = document.createElement('div');
+            item.className = 'border rounded p-3 flex justify-between items-center';
+            item.dataset.id = element.id;
+            
+            const stateClass = element.state === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+            const stateText = element.state === 'paid' ? 'Pagado' : 'Pendiente';
+            
+            item.innerHTML = `
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h3 class="font-medium">${element.title}</h3>
+                        <span class="text-xs px-2 py-1 rounded ${stateClass}">${stateText}</span>
+                    </div>
+                    <p class="text-sm text-gray-500">${element.description || ''}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="font-bold">${formatCurrency(element.amount)}</span>
+                    <button class="edit-btn text-blue-500 hover:text-blue-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+            
+            // Agregar event listener de edición
+            item.querySelector('.edit-btn').addEventListener('click', () => {
+                editElement(element);
+            });
+            
+            return item;
+        }
+        
+        function createDefaultElementItem(type, title) {
+            const item = document.createElement('div');
+            item.className = 'border rounded p-3 flex justify-between items-center opacity-50';
+            
+            item.innerHTML = `
+                <div>
+                    <h3 class="font-medium">${title}</h3>
+                    <p class="text-sm text-gray-500">No agregado todavía</p>
+                </div>
+                <div>
+                    <button class="add-default-btn px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded">
+                        Agregar
+                    </button>
+                </div>
+            `;
+            
+            // Agregar event listener
+            item.querySelector('.add-default-btn').addEventListener('click', () => {
+                openModal(type, { title });
+            });
+            
+            return item;
+        }
+        
+        function updateBalanceDisplay(balanceData) {
+    document.getElementById('monthly-income').textContent = formatCurrency(balanceData.monthly.income);
+    document.getElementById('monthly-expenses').textContent = formatCurrency(balanceData.monthly.expense);
+    document.getElementById('monthly-balance').textContent = formatCurrency(balanceData.monthly.balance);
+    
+    // Actualizar color del balance según su valor
+    const monthlyBalanceEl = document.getElementById('monthly-balance');
+    if (balanceData.monthly.balance < 0) {
+        monthlyBalanceEl.classList.remove('text-blue-600');
+        monthlyBalanceEl.classList.add('text-red-600');
+    } else {
+        monthlyBalanceEl.classList.remove('text-red-600');
+        monthlyBalanceEl.classList.add('text-blue-600');
+    }
+    
+    // Note: We no longer update cumulative balance here
+    // as it's handled by the loadCumulativeBalance function
+}
+        
+        function openModal(type, defaultValues = {}) {
+            const modal = document.getElementById('element-modal');
+            const form = document.getElementById('element-form');
+            const titleSelect = document.getElementById('title');
+            const modalTitle = document.getElementById('modal-title');
+            
+            // Resetear formulario
+            form.reset();
+            
+            // Establecer tipo
+            document.getElementById('element-type').value = type;
+            
+            // Actualizar título del modal
+            modalTitle.textContent = type === 'ingreso' ? 'Agregar Ingreso' : 'Agregar Gasto';
+            
+            // Limpiar y poblar opciones de título
+            titleSelect.innerHTML = '';
+            
+            const defaultTitles = type === 'ingreso' ? config.default_ingresos : config.default_egresos;
+            
+            defaultTitles.forEach(title => {
+                const option = document.createElement('option');
+                option.value = title;
+                option.textContent = title;
+                titleSelect.appendChild(option);
+            });
+            
+            // Agregar opción personalizada
+            const customOption = document.createElement('option');
+            customOption.value = 'custom';
+            customOption.textContent = '-- Agregar Personalizado --';
+            titleSelect.appendChild(customOption);
+            
+            // Ocultar campo de título personalizado inicialmente
+            document.getElementById('custom-title-container').classList.add('hidden');
+            
+            // Establecer valores predeterminados si se proporcionan
+            if (defaultValues.title) {
+                if (defaultTitles.includes(defaultValues.title)) {
+                    titleSelect.value = defaultValues.title;
+                } else {
+                    titleSelect.value = 'custom';
+                    document.getElementById('custom-title-container').classList.remove('hidden');
+                    document.getElementById('custom-title').value = defaultValues.title;
+                }
+            }
+            
+            if (defaultValues.amount) document.getElementById('amount').value = defaultValues.amount;
+            if (defaultValues.description) document.getElementById('description').value = defaultValues.description;
+            if (defaultValues.state) document.getElementById('state').value = defaultValues.state;
+            if (defaultValues.id) document.getElementById('element-id').value = defaultValues.id;
+            
+            // Mostrar modal
+            modal.classList.remove('hidden');
+        }
+        
+        function closeModal() {
+            document.getElementById('element-modal').classList.add('hidden');
+        }
+        
+        function editElement(element) {
+            openModal(element.type, {
+                id: element.id,
+                title: element.title,
+                amount: element.amount,
+                description: element.description,
+                state: element.state
+            });
+        }
+        
+        async function saveElement(e) {
+            e.preventDefault();
+            
+            const form = document.getElementById('element-form');
+            const type = document.getElementById('element-type').value;
+            const titleSelect = document.getElementById('title');
+            const customTitleInput = document.getElementById('custom-title');
+            const elementId = document.getElementById('element-id').value;
+            
+            // Obtener valor de título según selección
+            let title = titleSelect.value;
+            if (title === 'custom') {
+                title = customTitleInput.value.trim();
+                if (!title) {
+                    alert('Por favor ingresá un título personalizado');
+                    return;
+                }
+            }
+            
+            const amount = parseFloat(document.getElementById('amount').value);
+            if (isNaN(amount) || amount <= 0) {
+                alert('Por favor ingresá un monto válido');
+                return;
+            }
+            
+            const formData = {
+                title,
+                amount,
+                description: document.getElementById('description').value,
+                state: document.getElementById('state').value,
+                type,
+                month: currentMonth, // Usar nombre en inglés para la API
+                year: currentYear
+            };
+            
+            try {
+                let response;
+                
+                if (elementId) {
+                    // Actualizar elemento existente
+                    response = await fetch(`/api/elements/${elementId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+                } else {
+                    // Crear nuevo elemento
+                    response = await fetch('/api/elements', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+                }
+                
+                if (response.ok) {
+                    closeModal();
+                    await loadData();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Falló al guardar. Por favor intentá de nuevo.');
+                }
+            } catch (error) {
+                console.error('Error al guardar elemento:', error);
+                alert('Ocurrió un error. Por favor intentá de nuevo.');
+            }
+        }
+    
+        // Variables para los gráficos
+        let financialChart = null;
+        let breakdownChart = null;
+    
+        // Función para mostrar los gráficos
+        function displayCharts(data) {
+            const ctx = document.getElementById('financial-chart').getContext('2d');
+            const breakdownCtx = document.getElementById('breakdown-chart').getContext('2d');
+            
+            // Destruir gráficos existentes si existen
+            if (financialChart) {
+                financialChart.destroy();
+            }
+            if (breakdownChart) {
+                breakdownChart.destroy();
+            }
+            
+            // Crear el gráfico financiero principal
+            createFinancialChart(ctx, data);
+            
+            // Crear el gráfico circular de desglose para el mes actual
+            createBreakdownChart(breakdownCtx, data);
+            
+            // Actualizar tipo de gráfico cuando cambia la selección
+            document.getElementById('chart-type').addEventListener('change', (e) => {
+                updateChartType(e.target.value, data);
+            });
+        }
+    
+        function createFinancialChart(ctx, data) {
+            const chartType = document.getElementById('chart-type').value || 'line';
+            
+            const gradientBalance = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientBalance.addColorStop(0, 'rgba(99, 102, 241, 0.5)');
+            gradientBalance.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+            
+            const config = {
+                type: chartType === 'combined' ? 'bar' : chartType,
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Balance Acumulado',
+                        data: data.datasets.balance,
+                        backgroundColor: gradientBalance,
+                        borderColor: 'rgb(99, 102, 241)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: chartType === 'line',
+                        order: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: $${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: data.datasets.balance.every(value => value >= 0),
+                            grid: {
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // Si es un gráfico combinado, agregar ingresos y gastos como datasets de línea
+            if (chartType === 'combined') {
+                config.data.datasets.push({
+                    label: 'Ingresos Mensuales',
+                    data: data.datasets.income,
+                    type: 'line',
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.5)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgb(34, 197, 94)',
+                    tension: 0.4,
+                    fill: false,
+                    order: 1
+                });
+                
+                config.data.datasets.push({
+                    label: 'Gastos Mensuales',
+                    data: data.datasets.expenses,
+                    type: 'line',
+                    borderColor: 'rgb(239, 68, 68)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgb(239, 68, 68)',
+                    tension: 0.4,
+                    fill: false,
+                    order: 2
+                });
+            }
+            
+            financialChart = new Chart(ctx, config);
+        }
+    
+        function updateChartType(chartType, data) {
+            const ctx = document.getElementById('financial-chart').getContext('2d');
+            financialChart.destroy();
+            createFinancialChart(ctx, data);
+        }
+    
+        // Replace the createBreakdownChart function with this updated version:
+        function createBreakdownChart(breakdownCtx, data) {
+    // Parse the monetary values correctly for Argentine format
+    const parseArgentineCurrency = (text) => {
+        // Remove the currency symbol and any spaces
+        let value = text.replace(/[$\s]/g, '');
+        
+        // Replace dots (thousand separators) with nothing
+        value = value.replace(/\./g, '');
+        
+        // Replace commas (decimal separators) with dots for JavaScript parsing
+        value = value.replace(/,/g, '.');
+        
+        return parseFloat(value);
+    };
+    
+    // Get the monthly data elements by their IDs and parse correctly
+    const currentMonthIncome = parseArgentineCurrency(document.getElementById('monthly-income').textContent);
+    const currentMonthExpenses = parseArgentineCurrency(document.getElementById('monthly-expenses').textContent);
+    const currentMonthBalance = currentMonthIncome - currentMonthExpenses;
+    
+    // Update visualization text (no need to format again, just use the existing values)
+    document.getElementById('pie-income').textContent = document.getElementById('monthly-income').textContent;
+    document.getElementById('pie-expenses').textContent = document.getElementById('monthly-expenses').textContent;
+    document.getElementById('pie-balance').textContent = document.getElementById('monthly-balance').textContent;
+    
+    breakdownChart = new Chart(breakdownCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Ingresos', 'Gastos'],
+            datasets: [{
+                data: [currentMonthIncome, currentMonthExpenses],
+                backgroundColor: [
+                   'rgb(34, 197, 94)',
+                   'rgb(239, 68, 68)'
+               ],
+               borderColor: 'white',
+               borderWidth: 2,
+               hoverOffset: 4
+           }]
+       },
+       options: {
+           responsive: true,
+           maintainAspectRatio: false,
+           plugins: {
+               legend: {
+                   position: 'bottom',
+               },
+               tooltip: {
+                   callbacks: {
+                       label: function(context) {
+                           const label = context.label || '';
+                           return `${label}: ${formatCurrency(context.raw)}`;
+                       }
+                   }
+               }
+           },
+           cutout: '70%'
+       }
+    });
+}
+       // Add this to your page's JavaScript
+       async function loadUserData() {
+    try {
+        const response = await fetch('/api/profile');
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Update username display
+            document.getElementById('username-display').textContent = data.displayName || '';
+            
+            // Update profile image if exists
+            if (data.profileImage) {
+                // Add timestamp to prevent caching
+                const timestamp = new Date().getTime();
+                const imageUrl = `${data.profileImage}?t=${timestamp}`;
+                
+                // Set the image src directly without conditions
+                document.getElementById('nav-profile-pic').src = imageUrl;
+                
+                console.log("Dashboard profile image loaded:", imageUrl);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading user data:', error);
+    }
+}
+       // Call this function when the page loads
+window.addEventListener('DOMContentLoaded', loadUserData);
+
+// Add logout functionality
+document.getElementById('logout-btn').addEventListener('click', async () => {
+    try {
+        const response = await fetch('/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            window.location.href = data.redirect || '/login';
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+});
+
+// Add this function to fetch the cumulative balance
+async function loadCumulativeBalance() {
+    try {
+        const response = await fetch('/api/balance/cumulative');
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('cumulative-balance').textContent = formatCurrency(data.cumulative_balance);
+            
+            // Update color based on value
+            const cumulativeBalanceEl = document.getElementById('cumulative-balance');
+            cumulativeBalanceEl.className = 'text-2xl font-bold'; // Reset classes
+            
+            if (data.cumulative_balance < 0) {
+                cumulativeBalanceEl.classList.add('text-red-600');
+            } else {
+                cumulativeBalanceEl.classList.add('text-green-600');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading cumulative balance:', error);
+    }
+}
+
+// Modify the loadData function to call loadCumulativeBalance
+async function loadData() {
+    try {
+        // Load elements
+        const elementsResponse = await fetch(`/api/elements?month=${currentMonth}&year=${currentYear}`);
+        if (elementsResponse.ok) {
+            const elements = await elementsResponse.json();
+            renderElements(elements);
+        }
+        
+        // Load balance data for the specific month/year
+        await loadBalanceData();
+        
+        // Load cumulative balance data directly from the server
+        await loadCumulativeBalance();
+        
+        // Load graph data
+        const graphResponse = await fetch(`/api/balance/graph?months=6`);
+        if (graphResponse.ok) {
+            const graphData = await graphResponse.json();
+            displayCharts(graphData);
+            
+            // Update breakdown chart again after balance data is loaded
+            if (breakdownChart) {
+                breakdownChart.destroy();
+            }
+            createBreakdownChart(document.getElementById('breakdown-chart').getContext('2d'), graphData);
+        }
+    } catch (error) {
+        console.error('Error al cargar datos:', error);
+    }
+}
+    </script>
+</body>
+</html>
