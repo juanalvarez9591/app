@@ -17,10 +17,10 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Set via environment variable in production
 CORS(app)
-DB_PATH = os.environ.get('DATABASE_PATH', 'roommates.db')
-
+DB_PATH = os.environ.get('DATABASE_PATH', 'data/db/roommates.db')
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'static/profile_images')
 
 # Database initialization
 def init_db():
@@ -420,7 +420,6 @@ def init_app(app):
         init_db()
         
 
-# Create a directory to store profile images if it doesn't exist
 UPLOAD_FOLDER = 'static/profile_images'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -611,4 +610,5 @@ def get_cumulative_balance():
 # Then modify your app.py file near the bottom like this:
 if __name__ == '__main__':
     init_app(app)
-    app.run(host='0.0.0.0', port=5000)
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    app.run(host='0.0.0.0', port=5000, debug=debug_mode)

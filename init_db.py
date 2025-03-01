@@ -3,7 +3,8 @@ import sqlite3
 import json
 import os
 
-def init_db(db_file='roommates.db'):
+def init_db(db_file=os.environ.get('DATABASE_PATH', 'data/db/roommates.db')):
+    os.makedirs(os.path.dirname(db_file), exist_ok=True)
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     
