@@ -19,10 +19,12 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 CORS(app)
+DB_PATH = os.environ.get('DATABASE_PATH', 'roommates.db')
+
 
 # Database initialization
 def init_db():
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Users table
@@ -109,7 +111,7 @@ def register():
     # Hash password
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     try:
@@ -135,7 +137,7 @@ def login():
     # Hash password
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     c.execute("SELECT id, username FROM users WHERE username = ? AND password = ?",
@@ -168,7 +170,7 @@ def get_elements():
     month = request.args.get('month', datetime.now().strftime('%B'))
     year = int(request.args.get('year', datetime.now().year))
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     
@@ -195,7 +197,7 @@ def create_element():
     
     element_id = str(uuid.uuid4())
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     c.execute("""
@@ -228,7 +230,7 @@ def create_element():
 def update_element(element_id):
     data = request.json
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Build dynamic update query based on provided fields
@@ -263,7 +265,7 @@ def update_element(element_id):
 @app.route('/api/elements/<element_id>', methods=['DELETE'])
 @login_required
 def delete_element(element_id):
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # First get the element data for logging
@@ -300,7 +302,7 @@ def get_balance_graph():
     dates = []
     balances = []
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Go back (months_to_show - 1) months from current month
@@ -365,7 +367,7 @@ def log_activity(action_type, entity_type, entity_id, details=None):
     if 'user_id' not in session:
         return  # Can't log if no user is logged in
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     log_id = str(uuid.uuid4())
@@ -390,7 +392,7 @@ def log_activity(action_type, entity_type, entity_id, details=None):
 def get_logs():
     limit = int(request.args.get('limit', 20))
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     
@@ -431,7 +433,7 @@ def profile_page():
 @app.route('/api/profile', methods=['GET'])
 @login_required
 def get_profile():
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     
@@ -461,7 +463,7 @@ def update_profile():
     current_password = data.get('currentPassword')
     new_password = data.get('newPassword')
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # First, check if we need to update the password
@@ -536,7 +538,7 @@ def upload_profile_image():
         # Update the user's profile image in the database
         profile_image_url = f"/static/profile_images/{new_filename}"
         
-        conn = sqlite3.connect('roommates.db')
+        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute("UPDATE users SET profile_image = ? WHERE id = ?", 
                  (profile_image_url, session['user_id']))
@@ -556,7 +558,7 @@ def get_balance():
     month = request.args.get('month', datetime.now().strftime('%B'))
     year = int(request.args.get('year', datetime.now().year))
     
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Get monthly income and expenses
@@ -586,7 +588,7 @@ def get_balance():
 @app.route('/api/balance/cumulative', methods=['GET'])
 @login_required
 def get_cumulative_balance():
-    conn = sqlite3.connect('roommates.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Calculate the cumulative balance from all records
